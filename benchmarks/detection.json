@@ -1,0 +1,11 @@
+{
+  "samples": 395,
+  "inference_ms_mean": 2.782,
+  "inference_ms_p50": 2.873,
+  "inference_ms_p95": 3.453,
+  "inference_ms_p99": 3.932,
+  "inference_fps": 359.5,
+  "callback_ms_mean": 2.884,
+  "published_msgs": 301,
+  "publish_rate_hz": 201.3
+}

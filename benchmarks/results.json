@@ -1,0 +1,54 @@
+[
+{
+  "samples": 395,
+  "inference_ms_mean": 2.782,
+  "inference_ms_p50": 2.873,
+  "inference_ms_p95": 3.453,
+  "inference_ms_p99": 3.932,
+  "inference_fps": 359.5,
+  "callback_ms_mean": 2.884,
+  "published_msgs": 301,
+  "publish_rate_hz": 201.3,
+  "task": "detection",
+  "model": "yolo11n.onnx"
+},
+{
+  "samples": 395,
+  "inference_ms_mean": 10.393,
+  "inference_ms_p50": 5.718,
+  "inference_ms_p95": 49.208,
+  "inference_ms_p99": 63.443,
+  "inference_fps": 96.2,
+  "callback_ms_mean": 12.111,
+  "published_msgs": 369,
+  "publish_rate_hz": 83.8,
+  "task": "segmentation",
+  "model": "yolo11n-seg.onnx"
+},
+{
+  "samples": 395,
+  "inference_ms_mean": 0.946,
+  "inference_ms_p50": 0.945,
+  "inference_ms_p95": 0.988,
+  "inference_ms_p99": 1.011,
+  "inference_fps": 1056.7,
+  "callback_ms_mean": 1.073,
+  "published_msgs": 299,
+  "publish_rate_hz": 203.0,
+  "task": "pose",
+  "model": "yolo11n-pose.onnx"
+},
+{
+  "samples": 395,
+  "inference_ms_mean": 2.251,
+  "inference_ms_p50": 1.752,
+  "inference_ms_p95": 2.0,
+  "inference_ms_p99": 24.374,
+  "inference_fps": 444.3,
+  "callback_ms_mean": 4.264,
+  "published_msgs": 302,
+  "publish_rate_hz": 146.6,
+  "task": "depth",
+  "model": "yolo26n-depth.onnx"
+}
+]

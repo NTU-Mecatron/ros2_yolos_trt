@@ -28,9 +28,13 @@ Detection · Segmentation · Pose · OBB · Classification · **Monocular Metric
 
 ## 🎬 Demos
 
-Every clip below is a live `rviz2` capture on an **RTX 4090**, running real video
-through the node — annotated output on top, source camera underneath.
-Reproduce any of them with `scripts/record_demo.sh <task> <model> <video>`.
+Every clip below is a live `rviz2` capture on an **RTX 4090**, running real
+video through the node — annotated output on one panel, the source camera on
+the other. Reproduce any of them with
+`scripts/record_demo.sh <task> <model> <video>`.
+
+Footage from the [Intel IoT sample videos](https://github.com/intel-iot-devkit/sample-videos)
+collection (retail aisle and worker-zone scenes).
 
 <table align="center" cellpadding="8">
   <tr>
@@ -61,6 +65,39 @@ ros2 run depth_image_proc point_cloud_xyz \
 ## 📊 Benchmarks
 
 <!-- BENCHMARK_TABLE -->
+Measured on **NVIDIA RTX 4090** · TensorRT 10.16 · ROS 2 Jazzy, fp16 engines.
+
+Latency is reported by the nodes themselves on `~/timing`, so it covers
+inference plus message conversion — not DDS transport or subscriber
+scheduling. The first samples are discarded while the CUDA graph and
+allocator settle.
+
+| Task | Model | Mean | p50 | p95 | p99 | Inference FPS |
+|------|-------|-----:|----:|----:|----:|--------------:|
+| Detection | `yolo11n.onnx` | 2.782 ms | 2.873 ms | 3.453 ms | 3.932 ms | **359.5** |
+| Segmentation | `yolo11n-seg.onnx` | 10.393 ms | 5.718 ms | 49.208 ms | 63.443 ms | **96.2** |
+| Pose | `yolo11n-pose.onnx` | 0.946 ms | 0.945 ms | 0.988 ms | 1.011 ms | **1056.7** |
+| Depth | `yolo26n-depth.onnx` | 2.251 ms | 1.752 ms | 2.0 ms | 24.374 ms | **444.3** |
+
+> `Inference FPS` is `1000 / mean`, i.e. the rate one node sustains on one
+> GPU with nothing else running. Achieved publish rate is bounded by the input
+> frame rate, so it is not a model-capacity figure.
+
+**On segmentation's wide tail.** Detection, pose and depth hold a tight
+distribution — p99 within ~15% of the median. Segmentation does not, and the
+reason is structural rather than noise: mask postprocessing combines 32
+prototype masks per instance, applies a sigmoid and resizes to the source
+resolution, all on the CPU. Cost therefore scales with the number of detected
+instances, and the benchmark clip is a busy shop aisle. On sparser scenes
+segmentation tracks its median closely; if you need a flat tail with many
+instances, that postprocessing is the thing to move onto the GPU.
+
+Reproduce with:
+
+```bash
+./scripts/run_benchmarks.sh /path/to/models /path/to/video.mp4 250
+```
+<!-- /BENCHMARK_TABLE -->
 
 ---
 
