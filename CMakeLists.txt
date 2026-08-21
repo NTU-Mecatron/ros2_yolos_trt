@@ -274,8 +274,10 @@ if(BUILD_TESTING)
 
   # Integration tests need a GPU and model files; they skip themselves when
   # the environment variables are unset, so they are safe to always register.
+  # A generous timeout: the first run with a .onnx builds a TensorRT engine,
+  # which takes minutes. ctest's 60 s default kills it mid-build.
   macro(add_yolos_integration_test target source)
-    ament_add_gtest(${target} ${source})
+    ament_add_gtest(${target} ${source} TIMEOUT 900)
     target_link_libraries(${target} ${PROJECT_NAME}_components
       "${cpp_typesupport_target}" ${OpenCV_LIBS})
     ament_target_dependencies(${target} rclcpp sensor_msgs std_msgs vision_msgs)
