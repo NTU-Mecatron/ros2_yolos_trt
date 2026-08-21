@@ -65,10 +65,17 @@ for spec in "${TASKS[@]}"; do
   "${SCRIPT_DIR}/benchmark_task.py" --node "/$node" --output-topic "$topic" \
     --samples "$SAMPLES" --json "${OUT_DIR}/${task}.json" || true
 
+  # Killing the launch shell is not enough: ros2 launch children survive it and
+  # keep publishing, which contaminates the next task's measurements. Match on
+  # the command line, since pkill -x cannot match names longer than 15
+  # characters (image_publisher_node is 20). The bracketed first character stops
+  # the pattern matching this script itself.
   kill $LAUNCH_PID $PUB_PID 2>/dev/null || true
+  pkill -f "[i]mage_publisher_node" 2>/dev/null || true
+  pkill -f "[y]olos_trt_.*_node" 2>/dev/null || true
   wait $LAUNCH_PID 2>/dev/null || true
   wait $PUB_PID 2>/dev/null || true
-  sleep 3
+  sleep 4
 
   if [ -f "${OUT_DIR}/${task}.json" ]; then
     [ $FIRST -eq 0 ] && echo "," >> "$RESULTS"

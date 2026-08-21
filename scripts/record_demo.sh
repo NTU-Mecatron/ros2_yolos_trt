@@ -25,7 +25,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PKG_DIR="$(dirname "$SCRIPT_DIR")"
 OUT_DIR="${PKG_DIR}/assets"
 WORK_DIR="$(mktemp -d)"
-cleanup() { kill $(jobs -p) 2>/dev/null || true; rm -rf "$WORK_DIR"; }
+cleanup() {
+  kill $(jobs -p) 2>/dev/null || true
+  # ros2 launch children outlive their parent job. pkill -x cannot match names
+  # over 15 chars (image_publisher_node is 20), so match the command line; the
+  # bracketed first character keeps the pattern from matching this script.
+  pkill -f "[i]mage_publisher_node" 2>/dev/null || true
+  pkill -f "[y]olos_trt_.*_node" 2>/dev/null || true
+  rm -rf "$WORK_DIR"
+}
 trap cleanup EXIT
 
 case "$TASK" in
