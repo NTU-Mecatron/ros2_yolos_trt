@@ -14,7 +14,7 @@ TEST(BuildSmoke, TensorRtMajorVersionIsTen) {
 }
 
 TEST(BuildSmoke, UpstreamVersionEnumIsReachable) {
-  EXPECT_EQ(yolos::version::toString(yolos::YOLOVersion::V26), "V26");
+  EXPECT_EQ(yolos::version::toString(yolos::YOLOVersion::V26), "YOLOv26");
 }
 
 TEST(BuildSmoke, CudaPreprocessDeclarationLinks) {
