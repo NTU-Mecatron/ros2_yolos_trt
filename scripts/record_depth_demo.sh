@@ -15,6 +15,14 @@ MODEL="${1:?usage: record_depth_demo.sh <model> <input> [seconds]}"
 INPUT="${2:?usage: record_depth_demo.sh <model> <input> [seconds]}"
 RECORD_SECONDS="${3:-12}"
 
+# RViz docks its Image displays into a fixed-width left column, so a full-window
+# capture is mostly empty 3D view. Frame the capture on that column instead.
+# Override if your RViz lays out differently: CROP=w:h:x:y
+CROP="${CROP:-350:396:0:0}"
+SCALE_WIDTH="${SCALE_WIDTH:-560}"
+GIF_FPS="${GIF_FPS:-8}"
+GIF_COLORS="${GIF_COLORS:-64}"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PKG_DIR="$(dirname "$SCRIPT_DIR")"
 OUT_DIR="${PKG_DIR}/assets"
@@ -65,17 +73,23 @@ timeout 300 ros2 topic echo --once /yolos_trt_depth/depth/image > /dev/null \
 
 echo "== rviz2 =="
 rviz2 -d "${PKG_DIR}/rviz/depth_demo.rviz" &
-sleep 10
+sleep 12
+# Deterministic window size so the crop above lands in the same place.
+if command -v xdotool >/dev/null 2>&1; then
+  WID="$(xdotool search --name RViz | head -1 || true)"
+  [ -n "${WID:-}" ] && xdotool windowsize "$WID" 1280 720 && sleep 2
+fi
 
 echo "== recording ${RECORD_SECONDS}s =="
 ffmpeg -y -loglevel error -video_size 1280x720 -framerate 15 -f x11grab -i :99 \
-  -t "$RECORD_SECONDS" "${WORK_DIR}/capture.mp4"
+  -t "$RECORD_SECONDS" -vf "crop=${CROP}" "${WORK_DIR}/capture.mp4"
 
 echo "== gif (two-pass palette keeps it small and clean) =="
 ffmpeg -y -loglevel error -i "${WORK_DIR}/capture.mp4" \
-  -vf "fps=10,scale=960:-1:flags=lanczos,palettegen" "${WORK_DIR}/palette.png"
+  -vf "fps=${GIF_FPS},scale=${SCALE_WIDTH}:-1:flags=lanczos,palettegen=max_colors=${GIF_COLORS}" \
+  "${WORK_DIR}/palette.png"
 ffmpeg -y -loglevel error -i "${WORK_DIR}/capture.mp4" -i "${WORK_DIR}/palette.png" \
-  -lavfi "fps=10,scale=960:-1:flags=lanczos[x];[x][1:v]paletteuse" \
+  -lavfi "fps=${GIF_FPS},scale=${SCALE_WIDTH}:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=4" \
   "${OUT_DIR}/depth_rviz.gif"
 
 echo "wrote ${OUT_DIR}/depth_rviz.gif"
