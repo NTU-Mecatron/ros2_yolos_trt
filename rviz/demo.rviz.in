@@ -1,3 +1,4 @@
+# Template: @TITLE@ and @DEBUG_TOPIC@ are substituted by scripts/record_demo.sh
 Panels:
   - Class: rviz_common/Displays
     Name: Displays
@@ -10,6 +11,16 @@ Visualization Manager:
   Displays:
     - Class: rviz_default_plugins/Image
       Enabled: true
+      Name: "@TITLE@"
+      Value: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: @DEBUG_TOPIC@
+    - Class: rviz_default_plugins/Image
+      Enabled: true
       Name: Camera
       Value: true
       Topic:
@@ -18,16 +29,6 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Best Effort
         Value: /camera/image_raw
-    - Class: rviz_default_plugins/Image
-      Enabled: true
-      Name: Depth (colorized, metres)
-      Value: true
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        History Policy: Keep Last
-        Reliability Policy: Best Effort
-        Value: /yolos_trt_depth/depth/debug_image
   Global Options:
     Background Color: 25; 25; 25
     Fixed Frame: camera_link
@@ -39,6 +40,4 @@ Window Geometry:
   Height: 720
   Width: 1280
   Displays:
-    collapsed: false
-  Camera:
     collapsed: false
