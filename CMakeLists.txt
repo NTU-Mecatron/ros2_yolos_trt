@@ -78,9 +78,24 @@ if(NOT NVONNXPARSER_LIB)
     "models. Install libnvonnxparser-dev (10.x).")
 endif()
 
+# TensorRT 10.x defines NV_TENSORRT_MAJOR indirectly, as
+#   #define TRT_MAJOR_ENTERPRISE 10
+#   #define NV_TENSORRT_MAJOR TRT_MAJOR_ENTERPRISE
+# so matching NV_TENSORRT_MAJOR against a digit finds nothing. Try the direct
+# literal first (older layouts and some builds), then the indirection.
 file(READ "${TENSORRT_INCLUDE_DIR}/NvInferVersion.h" _trt_version_header)
-string(REGEX MATCH "define NV_TENSORRT_MAJOR ([0-9]+)" _ "${_trt_version_header}")
-set(TENSORRT_MAJOR "${CMAKE_MATCH_1}")
+set(TENSORRT_MAJOR "")
+if("${_trt_version_header}" MATCHES "define NV_TENSORRT_MAJOR ([0-9]+)")
+  set(TENSORRT_MAJOR "${CMAKE_MATCH_1}")
+elseif("${_trt_version_header}" MATCHES "define TRT_MAJOR_ENTERPRISE ([0-9]+)")
+  set(TENSORRT_MAJOR "${CMAKE_MATCH_1}")
+endif()
+if(TENSORRT_MAJOR STREQUAL "")
+  message(FATAL_ERROR
+    "Could not determine the TensorRT major version from "
+    "${TENSORRT_INCLUDE_DIR}/NvInferVersion.h. Refusing to build blind: this "
+    "package requires 10.x and 11.x removes the API it uses.")
+endif()
 if(NOT TENSORRT_MAJOR STREQUAL "10")
   message(FATAL_ERROR
     "Found TensorRT major version ${TENSORRT_MAJOR}, but 10.x is required. "
