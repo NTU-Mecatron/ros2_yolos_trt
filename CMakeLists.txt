@@ -14,10 +14,16 @@ cmake_minimum_required(VERSION 3.18)
 if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
   if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "aarch64" AND
      (EXISTS "/etc/nv_tegra_release" OR EXISTS "/usr/lib/aarch64-linux-gnu/tegra"))
-    set(CMAKE_CUDA_ARCHITECTURES "72;87")          # Jetson Xavier / Orin
+    set(_yolos_default_archs "72;87")          # Jetson Xavier / Orin
   else()
-    set(CMAKE_CUDA_ARCHITECTURES "75;80;86;89;90") # Turing -> Hopper
+    set(_yolos_default_archs "75;80;86;89;90") # Turing -> Hopper
   endif()
+  # CACHE so the value is inspectable in CMakeCache.txt. A plain set() here
+  # works too, but leaves nothing to grep when diagnosing a bad build, and
+  # "which architecture did this actually build for" is the first question
+  # worth asking when results look plausible but wrong.
+  set(CMAKE_CUDA_ARCHITECTURES "${_yolos_default_archs}" CACHE STRING
+      "CUDA architectures to build the preprocessing kernel for")
 endif()
 
 project(ros2_yolos_trt VERSION 0.1.0 LANGUAGES C CXX CUDA)
