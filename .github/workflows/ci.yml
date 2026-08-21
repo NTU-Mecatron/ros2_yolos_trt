@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install linters
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang-format
+
+      - name: Check C++ formatting
+        run: |
+          while IFS= read -r f; do
+            clang-format --dry-run --Werror "$f" 2>/dev/null || \
+              echo "::warning file=${f}::formatting differs"
+          done < <(find include src test -name '*.hpp' -o -name '*.cpp' | sort)
+
+      - name: Require SPDX headers
+        run: |
+          MISSING=0
+          while IFS= read -r f; do
+            if ! head -3 "$f" | grep -q "SPDX-License-Identifier: AGPL-3.0"; then
+              echo "::error file=${f}::missing SPDX license header"
+              MISSING=$((MISSING + 1))
+            fi
+          done < <(find include src -name '*.hpp' -o -name '*.cpp')
+          exit $MISSING
+
+      - name: Upstream must be pinned to a release tag
+        run: |
+          # A branch here would make builds irreproducible.
+          if grep -qE 'YOLOS_TRT_VERSION "(main|master|HEAD)"' CMakeLists.txt; then
+            echo "::error::upstream must be pinned to a release tag, not a branch"
+            exit 1
+          fi
+          grep -E 'YOLOS_TRT_VERSION "v[0-9]+\.[0-9]+\.[0-9]+"' CMakeLists.txt
+
+      - name: Shell and Python syntax
+        run: |
+          for f in scripts/*.sh; do bash -n "$f"; done
+          for f in scripts/*.py; do python3 -m py_compile "$f"; done
+          python3 -c "import yaml,sys; yaml.safe_load(open('.github/workflows/ci.yml'))"
+
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ros:jazzy-ros-base
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: src/ros2_yolos_trt
+
+      - name: Install CUDA and TensorRT 10.x
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends wget ca-certificates gnupg
+          wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+          dpkg -i cuda-keyring_1.1-1_all.deb
+          apt-get update
+
+          # Pin the whole family. Unpinned, libnvinfer-dev resolves to TensorRT
+          # 11.x built against CUDA 13, which does not compile against the TRT 10
+          # tensor API this package uses. Pinning single packages fails on deps.
+          tee /etc/apt/preferences.d/tensorrt-pin > /dev/null <<'PIN'
+          Package: libnvinfer* libnvonnxparsers* tensorrt*
+          Pin: version 10.*
+          Pin-Priority: 1001
+          PIN
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            cuda-nvcc-12-9 cuda-cudart-dev-12-9 \
+            libnvinfer-dev libnvinfer-headers-dev libnvonnxparsers-dev
+
+      - name: Install ROS dependencies
+        run: |
+          apt-get install -y --no-install-recommends \
+            ros-jazzy-vision-msgs ros-jazzy-cv-bridge ros-jazzy-image-transport \
+            libopencv-dev python3-colcon-common-extensions cmake build-essential
+
+      - name: Build
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          export PATH=/usr/local/cuda-12.9/bin:$PATH
+          colcon build --packages-select ros2_yolos_trt \
+            --cmake-args -DCMAKE_BUILD_TYPE=Release
+
+      - name: Reject an sm_52 build
+        shell: bash
+        run: |
+          ARCH=$(grep '^CMAKE_CUDA_ARCHITECTURES' \
+            build/ros2_yolos_trt/CMakeCache.txt | cut -d= -f2)
+          echo "CUDA architectures: $ARCH"
+          if [ "$ARCH" = "52" ]; then
+            echo "::error::built for sm_52 — preprocessing returns wrong pixels"
+            exit 1
+          fi
+
+      - name: Unit tests
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          colcon test --packages-select ros2_yolos_trt --ctest-args -E integration
+          colcon test-result --verbose
