@@ -21,6 +21,7 @@ def generate_launch_description():
             description='debug colorization clamp, metres; 0 = auto-range'),
         DeclareLaunchArgument('depth_max', default_value='0.0'),
         DeclareLaunchArgument('publish_debug_image', default_value='true'),
+        DeclareLaunchArgument('publish_timing', default_value='false'),
     ]
 
     node = LifecycleNode(
@@ -36,6 +37,7 @@ def generate_launch_description():
             'depth_min': LaunchConfiguration('depth_min'),
             'depth_max': LaunchConfiguration('depth_max'),
             'publish_debug_image': LaunchConfiguration('publish_debug_image'),
+            'publish_timing': LaunchConfiguration('publish_timing'),
         }],
         remappings=[('image', LaunchConfiguration('image_topic'))],
     )

@@ -20,6 +20,7 @@ def generate_launch_description():
         DeclareLaunchArgument('conf_threshold', default_value='0.4'),
         DeclareLaunchArgument('nms_threshold', default_value='0.45'),
         DeclareLaunchArgument('publish_debug_image', default_value='false'),
+        DeclareLaunchArgument('publish_timing', default_value='false'),
         DeclareLaunchArgument('max_detections', default_value='300'),
     ]
 
@@ -37,6 +38,7 @@ def generate_launch_description():
             'conf_threshold': LaunchConfiguration('conf_threshold'),
             'nms_threshold': LaunchConfiguration('nms_threshold'),
             'publish_debug_image': LaunchConfiguration('publish_debug_image'),
+            'publish_timing': LaunchConfiguration('publish_timing'),
             'max_detections': LaunchConfiguration('max_detections'),
         }],
         remappings=[('image', LaunchConfiguration('image_topic'))],
