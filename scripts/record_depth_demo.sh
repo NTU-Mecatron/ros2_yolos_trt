@@ -25,9 +25,23 @@ trap cleanup EXIT
 mkdir -p "$OUT_DIR"
 
 echo "== virtual display =="
+# On a GPU container, glvnd offers NVIDIA's EGL vendor to Xvfb, which then
+# segfaults during GLX init (libEGL_nvidia -> libnvidia-egl-gbm). Restricting
+# the vendor list to Mesa keeps the virtual display on software rendering,
+# which is what a headless capture wants anyway.
+export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json
+export __GLX_VENDOR_LIBRARY_NAME=mesa
+export LIBGL_ALWAYS_SOFTWARE=1
+export GALLIUM_DRIVER=llvmpipe
 export DISPLAY=:99
+
+rm -f /tmp/.X99-lock
 Xvfb :99 -screen 0 1280x720x24 &
-sleep 3
+sleep 4
+if ! xdpyinfo >/dev/null 2>&1; then
+  echo "Xvfb failed to start on :99" >&2
+  exit 1
+fi
 
 echo "== publishing frames from $INPUT =="
 ros2 run image_publisher image_publisher_node "$INPUT" \
