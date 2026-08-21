@@ -77,7 +77,7 @@ ros2 run depth_image_proc point_cloud_xyz \
 
 <div align="center">
 
-| | ros2_yolos_trt |
+| Aspect | How it works |
 |:---|:---|
 | **Preprocessing** | Letterbox, BGR→RGB and normalize in **one CUDA kernel**, writing straight into the TensorRT input buffer. The CPU never touches a pixel after `cv_bridge`. |
 | **Inference dispatch** | **CUDA graph replay** — captured once, replayed per frame, no launch overhead. |
@@ -326,8 +326,8 @@ Pinned staging buffer ──cudaMemcpyAsync──► Device uint8 (raw BGR)
                         Converter → vision_msgs / sensor_msgs
                                      │
                                      ▼
-                        Publishers: ~/detections · ~/keypoints · ~/depth/image
-                                    ~/debug_image · ~/timing
+                        Publishers: ~/detections · ~/masks · ~/keypoints
+                                    ~/depth/image · ~/debug_image · ~/timing
 ```
 
 Four layers, each replaceable without touching the others:
