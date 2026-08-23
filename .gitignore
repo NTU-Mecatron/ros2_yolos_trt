@@ -5,3 +5,4 @@ __pycache__/
 *.trt
 *.engine
 *.onnx
+promo/
