@@ -435,7 +435,7 @@ def card_cta(size):
     f3 = font("reg", int(27 * s))
     for i, line in enumerate(["ROS 2 Humble & Jazzy · TensorRT 10.x · CUDA 12+",
                               "Point it at an .onnx — the engine builds and caches itself.",
-                              "Six composable lifecycle nodes. 51 unit tests, no GPU needed."]):
+                              "Six composable lifecycle nodes. Unit tests need no GPU."]):
         tw, _ = wh(f3, line)
         d.text(((w - tw) / 2, h * 0.565 + i * int(43 * s)), line, font=f3, fill=MUTED)
 

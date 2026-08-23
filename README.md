@@ -399,7 +399,7 @@ colcon test --packages-select ros2_yolos_trt   # unit tests, no GPU needed
 colcon test-result --verbose
 ```
 
-51 unit tests cover the six message converters, the DTO contracts, the engine
+40 unit tests cover the six message converters, the DTO contracts, the engine
 cache key and the lifecycle parameter surface. Integration tests skip
 themselves unless pointed at models:
 
