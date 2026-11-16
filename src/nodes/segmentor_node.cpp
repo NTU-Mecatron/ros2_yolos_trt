@@ -26,6 +26,17 @@ YolosSegmentorNode::CallbackReturn YolosSegmentorNode::on_configure(
     return CallbackReturn::FAILURE;
   }
 
+  // Colors drive the Foxglove overlay, so every label line needs `#rrggbb`.
+  if (config_.labels_path.empty()) {
+    RCLCPP_ERROR(get_logger(), "labels_path parameter is required");
+    return CallbackReturn::FAILURE;
+  }
+  std::string label_error;
+  if (!loadLabelMap(config_.labels_path, true, labels_, label_error)) {
+    RCLCPP_ERROR(get_logger(), "%s", label_error.c_str());
+    return CallbackReturn::FAILURE;
+  }
+
   adapter_ = createSegmentorAdapter();
 
   // Building an engine from .onnx happens here and can take minutes; doing it
@@ -40,6 +51,9 @@ YolosSegmentorNode::CallbackReturn YolosSegmentorNode::on_configure(
   det_pub_ = create_publisher<vision_msgs::msg::Detection2DArray>(
     "~/detections", 10);
   mask_pub_ = create_publisher<sensor_msgs::msg::Image>("~/masks", 10);
+  annotations_pub_ =
+    create_publisher<foxglove_msgs::msg::ImageAnnotations>(
+      "segment/foxglove/annotations", rclcpp::QoS(10));
   if (publishDebugImage()) {
     debug_pub_ = create_publisher<sensor_msgs::msg::Image>("~/debug_image", 10);
   }
@@ -77,6 +91,7 @@ YolosSegmentorNode::CallbackReturn YolosSegmentorNode::on_cleanup(
   mask_pub_.reset();
   debug_pub_.reset();
   timing_pub_.reset();
+  annotations_pub_.reset();
   if (adapter_) adapter_->shutdown();
   adapter_.reset();
   return CallbackReturn::SUCCESS;
@@ -118,6 +133,13 @@ void YolosSegmentorNode::imageCallback(
     adapter_->drawSegmentations(frame, segs, 0.5f);
     debug_pub_->publish(
       *cv_bridge::CvImage(msg->header, "bgr8", frame).toImageMsg());
+  }
+
+  // Contour extraction is skipped when nobody (e.g. Foxglove) is listening.
+  if (annotations_pub_ && annotations_pub_->is_activated() &&
+      annotations_pub_->get_subscription_count() > 0) {
+    annotations_pub_->publish(conversion::segmentationToImageAnnotations(
+      segs, labels_.colors_bgr, msg->header));
   }
 
   const auto t_end = std::chrono::steady_clock::now();

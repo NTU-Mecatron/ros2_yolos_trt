@@ -6,6 +6,8 @@
 
 #include <vector>
 
+#include <foxglove_msgs/msg/image_annotations.hpp>
+#include <opencv2/core.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <std_msgs/msg/header.hpp>
 #include <vision_msgs/msg/detection2_d_array.hpp>
@@ -28,6 +30,16 @@ segmentationToDetection2DArray(
 /// Later instances overwrite earlier ones where they overlap.
 ROS2_YOLOS_TRT_PUBLIC sensor_msgs::msg::Image toCombinedMaskImage(
   const std::vector<SegmentationResult>& segmentations, int width, int height,
+  const std_msgs::msg::Header& header);
+
+/// @brief Foxglove image annotations: one outline per mask contour plus a
+/// class-name label per instance.
+/// @param colors_bgr per-class colors indexed by class_id; ids outside the
+///                   vector fall back to green.
+ROS2_YOLOS_TRT_PUBLIC foxglove_msgs::msg::ImageAnnotations
+segmentationToImageAnnotations(
+  const std::vector<SegmentationResult>& segmentations,
+  const std::vector<cv::Scalar>& colors_bgr,
   const std_msgs::msg::Header& header);
 
 }  // namespace conversion

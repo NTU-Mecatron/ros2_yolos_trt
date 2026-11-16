@@ -57,6 +57,13 @@ find_package(vision_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
+find_package(foxglove_msgs QUIET)
+if(NOT foxglove_msgs_FOUND)
+  message(FATAL_ERROR
+    "Required package 'foxglove_msgs' was not found. Install "
+    "'ros-$ENV{ROS_DISTRO}-foxglove-msgs', or rebuild the perception "
+    "container so rosdep installs it from package.xml.")
+endif()
 find_package(rosidl_default_generators REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(CUDAToolkit REQUIRED)
@@ -161,6 +168,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 add_library(${PROJECT_NAME}_components SHARED
   ${YOLOS_TRT_DIR}/include/yolos/core/cuda_preprocessing.cu
   src/engine/engine_cache.cpp
+  src/labels/label_map.cpp
   src/nodes/yolos_lifecycle_node_base.cpp
   src/adapters/detector_adapter.cpp
   src/adapters/segmentor_adapter.cpp
@@ -201,7 +209,7 @@ target_compile_definitions(${PROJECT_NAME}_components
 
 ament_target_dependencies(${PROJECT_NAME}_components
   rclcpp rclcpp_lifecycle rclcpp_components image_transport cv_bridge
-  sensor_msgs vision_msgs std_msgs geometry_msgs lifecycle_msgs)
+  sensor_msgs vision_msgs std_msgs geometry_msgs lifecycle_msgs foxglove_msgs)
 
 rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
 target_link_libraries(${PROJECT_NAME}_components "${cpp_typesupport_target}")
@@ -260,7 +268,7 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_segmentation_converter test/unit/test_segmentation_converter.cpp)
   target_link_libraries(test_segmentation_converter ${PROJECT_NAME}_components)
-  ament_target_dependencies(test_segmentation_converter vision_msgs sensor_msgs std_msgs)
+  ament_target_dependencies(test_segmentation_converter vision_msgs sensor_msgs std_msgs foxglove_msgs)
 
   ament_add_gtest(test_pose_converter test/unit/test_pose_converter.cpp)
   target_link_libraries(test_pose_converter ${PROJECT_NAME}_components "${cpp_typesupport_target}")
@@ -300,7 +308,7 @@ endif()
 ament_export_include_directories(include)
 ament_export_libraries(${PROJECT_NAME}_components)
 ament_export_dependencies(rclcpp rclcpp_lifecycle rclcpp_components
-  image_transport cv_bridge sensor_msgs vision_msgs std_msgs geometry_msgs)
+  image_transport cv_bridge sensor_msgs vision_msgs std_msgs geometry_msgs foxglove_msgs)
 ament_package()
 
 message(STATUS "")

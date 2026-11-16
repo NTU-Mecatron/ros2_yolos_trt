@@ -6,9 +6,16 @@
 // The only place upstream headers appear for this task.
 #include "yolos/tasks/segmentation.hpp"
 
+#include <unistd.h>
+
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 
 #include "ros2_yolos_trt/engine/engine_cache.hpp"
+#include "ros2_yolos_trt/labels/label_map.hpp"
+
+namespace fs = std::filesystem;
 
 namespace ros2_yolos_trt {
 
@@ -35,9 +42,37 @@ bool SegmentorAdapter::initialize(const YolosConfig& config) {
       return false;
     }
 
+    // Labels files may carry a trailing `#rrggbb` per line. Upstream does not
+    // know that format, so hand it a names-only copy and keep our own names.
+    LabelMap labels;
+    std::string labels_for_upstream = config.labels_path;
+    fs::path stripped;
+    if (!config.labels_path.empty()) {
+      if (!loadLabelMap(config.labels_path, false, labels, error)) {
+        std::cerr << "[SegmentorAdapter] " << error << std::endl;
+        return false;
+      }
+      stripped = fs::temp_directory_path() /
+                 ("yolos_labels_" + std::to_string(::getpid()) + ".txt");
+      {
+        std::ofstream f(stripped);
+        for (const auto& n : labels.names) f << n << '\n';
+        if (!f) {
+          std::cerr << "[SegmentorAdapter] cannot write " << stripped << std::endl;
+          return false;
+        }
+      }
+      labels_for_upstream = stripped.string();
+    }
+
     impl_->segmentor = std::make_unique<yolos::seg::YOLOSegDetector>(
-      engine.string(), config.labels_path, config.dla_core);
-    impl_->class_names = impl_->segmentor->getClassNames();
+      engine.string(), labels_for_upstream, config.dla_core);
+    if (!stripped.empty()) {
+      std::error_code ec;
+      fs::remove(stripped, ec);  // upstream reads labels in its constructor
+    }
+    impl_->class_names = labels.names.empty() ? impl_->segmentor->getClassNames()
+                                              : labels.names;
     impl_->initialized = true;
     return true;
   } catch (const std::exception& e) {

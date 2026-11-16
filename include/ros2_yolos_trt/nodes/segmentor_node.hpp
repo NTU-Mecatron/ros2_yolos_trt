@@ -6,10 +6,12 @@
 
 #include <memory>
 
+#include <foxglove_msgs/msg/image_annotations.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <vision_msgs/msg/detection2_d_array.hpp>
 
 #include "ros2_yolos_trt/adapters/segmentor_adapter.hpp"
+#include "ros2_yolos_trt/labels/label_map.hpp"
 #include "ros2_yolos_trt/nodes/yolos_lifecycle_node_base.hpp"
 
 namespace ros2_yolos_trt {
@@ -35,7 +37,10 @@ private:
     mask_pub_;
   rclcpp_lifecycle::LifecyclePublisher<sensor_msgs::msg::Image>::SharedPtr
     debug_pub_;
+  rclcpp_lifecycle::LifecyclePublisher<foxglove_msgs::msg::ImageAnnotations>::SharedPtr
+    annotations_pub_;
   YolosConfig config_;
+  LabelMap labels_;  ///< names + colors; colors drive the annotation overlay
 };
 
 }  // namespace ros2_yolos_trt
